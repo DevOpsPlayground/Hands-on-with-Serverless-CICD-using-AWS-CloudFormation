@@ -10,7 +10,25 @@ Parameters:
   StackName:
     Type: String
     AllowedPattern: '[\w\.-]+'
+  UserName:
+    Type: String
+  Password:
+    NoEcho: "true"
+    Description: The user account password
+    Type: String
+    MinLength: "8"
+    MaxLength: "41"
+    AllowedPattern: "[a-zA-Z0-9]*"
+    ConstraintDescription: must contain only alphanumeric characters.
 Resources:
+  User:
+    Type: "AWS::IAM::User"
+    Properties:
+      LoginProfile:
+        Password: !Ref Password
+        PasswordResetRequired: "false"
+      Path: "/"
+      UserName: !Ref UserName
   Repository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -130,7 +148,7 @@ Resources:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/docker:17.09.0
           Type: LINUX_CONTAINER
-        Name: !Ref AWS::StackName
+        Name: !Ref StackName
         ServiceRole: !Ref PipelineRole  
         
   Pipeline:
@@ -199,8 +217,7 @@ Resources:
                 RoleArn:
                   Fn::GetAtt: [ CFNRole, Arn ]
                 Capabilities: CAPABILITY_NAMED_IAM
-                StackName:
-                  Fn::Sub: ${StackName}
+                StackName: !Ref StackName
                 TemplatePath: PackagedCFN::output.yaml
 
               RunOrder: 2
@@ -212,9 +229,9 @@ Resources:
         RepositoryUrl: !GetAtt Repository.CloneUrlHttp
       - PathComponent: "./app"
         RepositoryUrl: "https://github.com/ecsdigital/devopsplayground23-app"
-      OwnerArn: arn:aws:iam::415830525771:user/Paul
+      OwnerArn: !GetAtt User.Arn
       Description: "Test environment"
       AutomaticStopTimeMinutes: 60
-      InstanceType: t2.micro
-      Name: !Sub "${AWS::StackName}"
+      InstanceType: t2.large
+      Name: !Ref StackName
       SubnetId: subnet-e5224381
