@@ -93,6 +93,39 @@ Resources:
               - cloud9:DescribeEnvironmentStatus
               - cloud9:DescribeEnvironmentMemberships  
             Resource: '*'
+          -
+            Effect: Allow
+            Action:
+              - cloudformation:DescribeStacks
+              - cloudformation:ListChangeSets
+              - cloudformation:ListExports
+              - cloudformation:ListImports
+              - cloudformation:ListStackInstances
+              - cloudformation:ListStackResources
+              - cloudformation:ListStacks
+              - cloudformation:ListStackSetOperationResults
+              - cloudformation:ListStackSetOperations
+              - cloudformation:ListStackSets
+              - cloudformation:Describe*
+              - cloudformation:Get*
+              - cloudformation:EstimateTemplateCost
+            Resource: '*'
+          -
+            Effect: Allow
+            Action: 
+              - codebuild:*
+            Resource: '*'
+          -
+            Effect: Allow
+            Action:
+              - apigateway:*
+            Resource: '*'
+          - 
+            Effect: Allow
+            Action:
+              - cloudwatch:*
+            Resources: '*'
+
   Repository:
     Type: AWS::CodeCommit::Repository
     Properties:

@@ -1,3 +1,7 @@
+Parameters:
+  BucketName:
+    Type: String
+    Default: cicd-artifactbucket
 Resources:
   CodeRepository:
     Type: AWS::CodeCommit::Repository
@@ -84,7 +88,7 @@ Resources:
                 - 'codecommit:*'
                 - 'sts:AssumeRole'
                 Effect: Allow
-                Resource: !GetAtt Repository.Arn
+                Resource: !GetAtt CodeRepository.Arn
         - PolicyName: CodeBuildAccess
           PolicyDocument:
             Version: '2012-10-17'
@@ -106,22 +110,22 @@ Resources:
             phases:
               build:
                 commands:
-                  - !Sub aws cloudformation package --template-file pipeline.yaml --output-template-file output.yaml --s3-bucket cicd-artifactbucket --region eu-west-1
+                  - !Sub aws cloudformation package --template-file template.yaml --output-template-file output.yaml --s3-bucket ${BucketName} --region eu-west-1
             artifacts:
               files: ./**
         Environment:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/docker:17.09.0
           Type: LINUX_CONTAINER
-        Name: !Ref StackName
+        Name: !Sub "${AWS::StackName}-buildproject"
         ServiceRole: !Ref PipelineRole  
         
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: !Sub '${Repository.Name}-pipeline'
+      Name: !Sub '${CodeRepository.Name}-pipeline'
       ArtifactStore:
-        Location: !Ref CodepipelineArtifactBucket
+        Location: !Ref BucketName
         Type: S3
       DisableInboundStageTransitions: []
       RoleArn: !GetAtt [PipelineRole, Arn]
@@ -141,7 +145,7 @@ Resources:
                   Name: CFNTemplateOutput
               Configuration:
                 BranchName: master
-                RepositoryName: !GetAtt Repository.Name
+                RepositoryName: !GetAtt CodeRepository.Name
               RunOrder: 1
         -
           Name: PackageCloudFormation
@@ -165,7 +169,7 @@ Resources:
           Name: Deploy
           Actions:
             -
-              Name: CreateUpdate
+              Name: CreateChangeset
               InputArtifacts:
                 -
                   Name: PackagedCFN
@@ -178,11 +182,24 @@ Resources:
                 -
                   Name: CreatedStack
               Configuration:
-                ActionMode: CREATE_UPDATE
+                ActionMode: CHANGE_SET_REPLACE
+                ChangeSetName: Changes
                 RoleArn:
                   Fn::GetAtt: [ CFNRole, Arn ]
                 Capabilities: CAPABILITY_NAMED_IAM
-                StackName: !Ref StackName
+                StackName: !Sub "${AWS::StackName}-Deployment"
                 TemplatePath: PackagedCFN::output.yaml
-
+              RunOrder: 1
+            - Name: ExecuteChangeset
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                RoleArn: !GetAtt CFNRole.Arn
+                StackName: !Sub "${AWS::StackName}-Deployment"
+                ChangeSetName: Changes
+                TemplatePath: PackageCFN::output.yaml
               RunOrder: 2
