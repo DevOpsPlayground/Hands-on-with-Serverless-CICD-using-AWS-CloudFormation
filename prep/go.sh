@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 iterations=$1
 for i in $(seq 1 $iterations)
 do
@@ -7,9 +8,9 @@ do
     user=pge-${i}
     password=abcd12345
     repo=serverless-${i}
+    subnetId=subnet-e5224381
     repourl=ssh://git-codecommit.eu-west-1.amazonaws.com/v1/repos/$repo
-    echo $repo
-    echo $user
+    #echo "$user,$password,$repo,$bootstack,$stackname" >> test.csv
     aws cloudformation deploy \
         --stack-name $bootstack \
         --template-file pipeline.yaml \
@@ -20,5 +21,7 @@ do
             StackName=$stackname \
             UserName=$user \
             Password=$password \
+            SubnetId=$subnetId \
+            InstanceType=t2.medium \
         --capabilities=CAPABILITY_NAMED_IAM
 done

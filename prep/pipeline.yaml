@@ -20,6 +20,10 @@ Parameters:
     MaxLength: "41"
     AllowedPattern: "[a-zA-Z0-9]*"
     ConstraintDescription: must contain only alphanumeric characters.
+  InstanceType:
+    Type: String
+  SubnetId:
+    Type: String
 Resources:
   User:
     Type: "AWS::IAM::User"
@@ -29,6 +33,66 @@ Resources:
         PasswordResetRequired: "false"
       Path: "/"
       UserName: !Ref UserName
+  UserPolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      PolicyName: !Sub "${AWS::StackName}-user-policy"
+      Users:
+          - !Ref User
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: Allow
+            Action:
+              - codecommit:CreateBranch
+              - codecommit:ListPullRequests
+              - codecommit:GetBlob
+              - codecommit:PutFile
+              - codecommit:GetReferences
+              - codecommit:ListRepositories
+              - codecommit:UpdatePullRequestTitle
+              - codecommit:GetCommentsForComparedCommit
+              - codecommit:GetCommit
+              - codecommit:GetComment
+              - codecommit:UpdateComment
+              - codecommit:GetCommitHistory
+              - codecommit:GetCommitsFromMergeBase
+              - codecommit:TestRepositoryTriggers
+              - codecommit:DescribePullRequestEvents
+              - codecommit:GetUploadArchiveStatus
+              - codecommit:GetDifferences
+              - codecommit:GetRepository
+              - codecommit:GetBranch
+              - codecommit:GetMergeConflicts
+              - codecommit:PostCommentForComparedCommit
+              - codecommit:GitPush
+              - codecommit:DeleteBranch
+              - codecommit:UpdatePullRequestStatus
+              - codecommit:CreatePullRequest
+              - codecommit:GetPullRequest
+              - codecommit:PutRepositoryTriggers
+              - codecommit:ListBranches
+              - codecommit:PostCommentForPullRequest
+              - codecommit:GetRepositoryTriggers
+              - codecommit:UpdatePullRequestDescription
+              - codecommit:GitPull
+              - codecommit:BatchGetRepositories
+              - codecommit:GetCommentsForPullRequest
+              - codecommit:GetObjectIdentifier
+              - codecommit:CancelUploadArchive
+              - codecommit:BatchGetPullRequests
+              - codecommit:PostCommentReply
+            Resource: '*'
+          - # Cloud 9 Permissions
+            Effect: Allow
+            Action:
+              - cloud9:DescribeEnvironments
+              - cloud9:ListEnvironments
+              - cloud9:GetUserPublicKey
+              - cloud9:DescribeEnvironmentStatus
+              - cloud9:DescribeEnvironmentMemberships  
+            Resource: '*'
   Repository:
     Type: AWS::CodeCommit::Repository
     Properties:
@@ -232,6 +296,6 @@ Resources:
       OwnerArn: !GetAtt User.Arn
       Description: "Test environment"
       AutomaticStopTimeMinutes: 60
-      InstanceType: t2.large
+      InstanceType: !Ref InstanceType
       Name: !Ref StackName
-      SubnetId: subnet-e5224381
+      SubnetId: !Ref SubnetId

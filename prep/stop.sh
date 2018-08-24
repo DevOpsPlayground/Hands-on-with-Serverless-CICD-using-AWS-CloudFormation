@@ -6,5 +6,5 @@ do
     aws cloudformation delete-stack \
         --stack-name $bootstack \
         --profile ecs-training \
-        --region eu-west-1 \
+        --region eu-west-1
 done
