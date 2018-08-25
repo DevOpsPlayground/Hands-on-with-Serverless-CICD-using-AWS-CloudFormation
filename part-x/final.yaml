@@ -38,6 +38,7 @@ Resources:
                   - SNS:*
                   - cloudformation:*
                   - lambda:*
+                  - apigateway:*
                 Effect: Allow
                 Resource: '*' 
               
