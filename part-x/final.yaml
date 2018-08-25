@@ -1,7 +1,7 @@
 Parameters:
   BucketName:
     Type: String
-    Default: cicd-artifactbucket
+    Default: pge-pipeline-bucket
 Resources:
   CodeRepository:
     Type: AWS::CodeCommit::Repository
@@ -36,6 +36,8 @@ Resources:
                   - codepipeline:*
                   - ecr:*
                   - SNS:*
+                  - cloudformation:*
+                  - lambda:*
                 Effect: Allow
                 Resource: '*' 
               
@@ -78,6 +80,7 @@ Resources:
                 - 'sts:AssumeRole'
                 - 'codecommit:*'
                 - 'ecr:*'
+                - 'apigateway:*'
                 Effect: Allow
                 Resource: '*'
         - PolicyName: CodeCommitAccess
@@ -110,13 +113,17 @@ Resources:
             phases:
               build:
                 commands:
-                  - !Sub aws cloudformation package --template-file template.yaml --output-template-file output.yaml --s3-bucket ${BucketName} --region eu-west-1
+                  - !Sub "aws cloudformation package --template-file template.yaml --output-template-file output.yaml --s3-bucket $BucketName --region eu-west-1"
             artifacts:
               files: ./**
         Environment:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/docker:17.09.0
           Type: LINUX_CONTAINER
+          EnvironmentVariables:
+            - Name: BucketName
+              Type: PLAINTEXT
+              Value: !Ref BucketName
         Name: !Sub "${AWS::StackName}-buildproject"
         ServiceRole: !Ref PipelineRole  
         
