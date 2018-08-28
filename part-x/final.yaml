@@ -1,13 +1,11 @@
-Parameters:
-  BucketName:
-    Type: String
-    Default: pge-pipeline-bucket
 Resources:
   CodeRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryDescription: "CodeCommit repository for project"
-      RepositoryName: !Sub "${AWS::StackName}"
+      RepositoryName: !Sub "${AWS::StackName}-app"
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
@@ -114,7 +112,11 @@ Resources:
             phases:
               build:
                 commands:
-                  - !Sub "aws cloudformation package --template-file template.yaml --output-template-file output.yaml --s3-bucket $BucketName --region eu-west-1"
+                  - !Sub "aws cloudformation package \
+                              --template-file template.yaml \
+                              --output-template-file output.yaml \
+                              --s3-bucket $DeploymentBucketName \
+                              --region eu-west-1"
             artifacts:
               files: ./**
         Environment:
@@ -122,9 +124,9 @@ Resources:
           Image: aws/codebuild/docker:17.09.0
           Type: LINUX_CONTAINER
           EnvironmentVariables:
-            - Name: BucketName
+            - Name: DeploymentBucketName
               Type: PLAINTEXT
-              Value: !Ref BucketName
+              Value: !Ref DeploymentBucket
         Name: !Sub "${AWS::StackName}-buildproject"
         ServiceRole: !Ref PipelineRole  
         
@@ -133,7 +135,7 @@ Resources:
     Properties:
       Name: !Sub '${CodeRepository.Name}-pipeline'
       ArtifactStore:
-        Location: !Ref BucketName
+        Location: !Ref DeploymentBucket
         Type: S3
       DisableInboundStageTransitions: []
       RoleArn: !GetAtt [PipelineRole, Arn]

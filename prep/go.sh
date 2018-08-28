@@ -2,7 +2,7 @@
 profile=playground
 region=eu-west-1
 VPCName="PlaygroundVPC"
-prepstackname=pge-7-prep
+prepstackname=pge-stack-prep
 userstackprefix=pge
 artifactbucket=pge-artifact-bucket
 deploybucket=pge-deploy-bucket
@@ -21,11 +21,11 @@ aws cloudformation deploy \
 iterations=$1
 for i in $(seq 1 $iterations)
 do
-    bootstack=$userstackprefix-${i}
-    stackname=pipeline-${i}
+    bootstack=$userstackprefix-${i}-bootstrap
+    stackname=pge-${i}-app
     user=pge-${i}
     password=abcd12345
-    repo=pge-${i}
+    repo=pge-${i}-pipeline
     subnetId=subnet-e5224381
     repourl=ssh://git-codecommit.eu-west-1.amazonaws.com/v1/repos/$repo
     #echo "$user,$password,$repo,$bootstack,$stackname" >> test.csv

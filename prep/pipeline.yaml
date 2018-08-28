@@ -122,7 +122,7 @@ Resources:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryDescription: "CodeCommit repository for project"
-      RepositoryName: !Ref RepositoryName
+      RepositoryName: !Sub ${RepositoryName}-pipeline
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
@@ -225,10 +225,10 @@ Resources:
             phases:
               build:
                 commands:
-                  - !Sub aws cloudformation package \
-                            --template-file pipeline.yaml \
-                            --output-template-file output.yaml \
-                            --s3-bucket ${DeploymentBucket} \
+                  - !Sub aws cloudformation package
+                            --template-file pipeline.yaml
+                            --output-template-file output.yaml
+                            --s3-bucket $DeploymentBucket
                             --region eu-west-1
             artifacts:
               files: ./**
@@ -240,13 +240,13 @@ Resources:
             - Name: DeploymentBucket
               Type: PLAINTEXT
               Value: {'Fn::ImportValue': !Sub '${PrepStackName}-DeploymentBucket'}
-        Name: !Sub '${Repository.Name}-codebuildproj'
+        Name: !Sub '${AWS::StackName}-CodeBuildProject'
         ServiceRole: !Ref PipelineRole  
         
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
     Properties:
-      Name: !Sub '${Repository.Name}-pipeline'
+      # Name: !Sub '${StackName}-pipeline'
       ArtifactStore:
         Location: {'Fn::ImportValue': !Sub '${PrepStackName}-ArtifactBucket'}
         Type: S3
@@ -317,13 +317,15 @@ Resources:
     DependsOn: UserPolicy
     Properties:
       Repositories: 
-      - PathComponent: "./project"     
+      - PathComponent: "./my-pipeline"     
         RepositoryUrl: !GetAtt Repository.CloneUrlHttp
-      - PathComponent: "./app"
+      - PathComponent: "./my-app-clone"
         RepositoryUrl: "https://github.com/ecsdigital/devopsplayground23-app"
+      - PathComponent: "./playground-scripts"
+        RepositoryUrl: "https://github.com/ecsdigital/devopsplayground-edi-7-cicd-cfn"
       OwnerArn: !GetAtt User.Arn
-      Description: "Test environment"
+      Description: "Your own personal playground!"
       AutomaticStopTimeMinutes: 60
       InstanceType: !Ref InstanceType
-      Name: !Ref StackName
+      Name: !Sub ${StackName}
       SubnetId: {'Fn::ImportValue': !Sub '${PrepStackName}-SubnetID'}
