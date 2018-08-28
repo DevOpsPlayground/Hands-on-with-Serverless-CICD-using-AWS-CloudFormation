@@ -25,8 +25,7 @@ Resources:
                 Version: 1
                 Provider: CodeCommit
               OutputArtifacts:
-                -
-                  Name: CFNTemplateOutput
+                - Name: CFNTemplateOutput
               Configuration:
                 BranchName: master
                 RepositoryName: !GetAtt CodeRepository.Name

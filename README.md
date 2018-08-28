@@ -174,7 +174,7 @@ CodePipeline requires 2 actions so we'll deal with 1 + 2 together.
 
 Lets go back to Cloud9.
 
-Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline.
+Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline. Copy the contents of this file into your pipeline.yaml - we'll walkthrough these options first.
 
 Pipeline:- This is the action CodePipeline resource. CodePipeline allows you to define stages and actions which occur during your CI/CD process. Let's walk through the properties defined here
 ```
@@ -204,38 +204,40 @@ Stages:
     Name: Source
     Actions:
     -
-        Name: Checkout
-        ActionTypeId:
-        Category: Source
-        Owner: AWS
-        Version: 1
-        Provider: CodeCommit
-        OutputArtifacts:
+        Name: Source
+        Actions:
         -
-            Name: CFNTemplateOutput
-        Configuration:
-        BranchName: master
-        RepositoryName: !GetAtt CodeRepository.Name
-        RunOrder: 1
--
-    Name: PackageCloudFormation
-    Actions:
+            Name: Checkout
+            ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: CodeCommit
+            OutputArtifacts:
+                - Name: CFNTemplateOutput
+            Configuration:
+                BranchName: master
+                RepositoryName: !GetAtt CodeRepository.Name
+            RunOrder: 1
     -
-        Name: PackagePipelineCFN
-        ActionTypeId:
-        Category: Build
-        Owner: AWS
-        Version: 1
-        Provider: CodeBuild
-        Configuration:
-        ProjectName: !Ref CodeBuildProject
-        InputArtifacts: 
-        - Name: CFNTemplateOutput
-        OutputArtifacts:
-        - Name: PackagedCFN
-        RunOrder: 1
+        Name: PackageCloudFormation
+        Actions:
+        -
+            Name: PackagePipelineCFN
+            ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+            Configuration:
+                ProjectName: !Ref CodeBuildProject
+            InputArtifacts: 
+                - Name: CFNTemplateOutput
+            OutputArtifacts:
+                - Name: PackagedCFN
+            RunOrder: 1
 ```
 
 We won't go into detail about these options, the two stages are 1) grab source from a CodeCommit repository and 2) run a CodeBuild Project.... But we haven't defined the CodeBuild project yet.
 
-A CodeBuild project is a specification defining how to run your build steps
+A CodeBuild project is a specification defining how to run your build steps, so that's what we need to define next.
