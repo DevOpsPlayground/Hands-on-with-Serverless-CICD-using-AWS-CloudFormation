@@ -122,7 +122,7 @@ Resources:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryDescription: "CodeCommit repository for project"
-      RepositoryName: !Sub ${RepositoryName}-pipeline
+      RepositoryName: !Sub ${RepositoryName}
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
