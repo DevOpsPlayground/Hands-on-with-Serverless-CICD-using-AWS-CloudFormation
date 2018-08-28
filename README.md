@@ -277,10 +277,10 @@ CodeBuildProject:
         ServiceRole: !Ref PipelineRole  
 ```  
 
-The most important parts of this snippet are the BuildSpec, which define the commands required to get your application into a built and deployable state. These commands could also potentially be used for linting, running unit tests, validation etc, perhaps even as separate codebuild configurations. It's worth noting that you can share codebuild projects between different codebases if you're clever (e.g. put buildspec in your source control).
+The most important parts of this snippet are the BuildSpec, which define the commands required to get your application into a built and deployable state and also the artifacts, which will be used in later build stages (e.g. CloudFormation templates). These commands could also potentially be used for linting, running unit tests, validation etc, perhaps even as separate codebuild configurations. It's worth noting that you can share codebuild projects between different codebases if you're clever (e.g. put buildspec in your source control).
 
 Also important is the Environment which specifies first the performance level your build requires (which affects cost and performance), and also which container image to use to run the build steps. And finally, what IAM role to assume - there is a standard spec in the AWS documentation, but we require some customisation for our build steps to work because we need to write a cloudformation template to S3.
 
 Ok so with the descriptions out of the way, as before save the updated pipeline.yaml file which should contain the full contents of part-2/snippet.yaml (overwrite previous contents), then with the same git commands as before, add, commit and push the changes.
 
-After a short period (monitor your pge-*-pipeline to see things moving), you should see some new resources in your pge-*-app, and also an additonal pipeline prefixed with pge-*.
+After a short period (monitor your pge-**-pipeline to see things moving), you should see some new resources in your pge-**-app, and also an additonal pipeline prefixed with pge-*.
