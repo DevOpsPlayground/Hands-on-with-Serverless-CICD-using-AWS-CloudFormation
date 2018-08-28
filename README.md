@@ -33,6 +33,7 @@ When logged in, ensure that you have the region "Ireland" selected (otherwise kn
 We've provided a complete environment to enable you to edit and commit CloudFormation code and a build pipeline to execute it with. Cloud9 gives us a nice code editor and also a terminal window configured with access to the appropriate repositories to build our pipeline and clone our sample application.
 
 In the search bar under AWS services, search for cloud9
+
 ![](images/navigate-cloud-9.png)
 
 You should by default be navigated to the "Your environments" tab where you will see an environment available to you (named similarly to the username you were allocated).
@@ -46,6 +47,7 @@ The environment should open in a new tab, and after a short wait a small bash sc
 ![](images/your-environment.png)
 
 You should have 3 repositories cloned and showing in the folder pane on the left-hand-side :-
+
 ![](images/environment-folders.png)
 
 my-app-clone :- This is a clone of the repository https://github.com/ecsdigital/devopsplayground23-app - it contains a simple Hello World NodeJs express app which we'll be deploying in the pipeline you create. We need this clone so we can push the contents to our new repository when we create it. This is read-only
