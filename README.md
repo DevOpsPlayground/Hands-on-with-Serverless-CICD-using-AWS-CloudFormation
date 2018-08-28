@@ -241,3 +241,46 @@ Stages:
 We won't go into detail about these options, the two stages are 1) grab source from a CodeCommit repository and 2) run a CodeBuild Project.... But we haven't defined the CodeBuild project yet.
 
 A CodeBuild project is a specification defining how to run your build steps, so that's what we need to define next.
+
+```
+CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+        Artifacts:
+          Type: CODEPIPELINE
+        Source:
+          Type: CODEPIPELINE
+          BuildSpec: |
+            version: 0.2
+            phases:
+              install:
+                commands:
+                  - npm install
+              build:
+                commands:
+                  - !Sub "aws cloudformation package \
+                              --template-file template.yaml \
+                              --output-template-file output.yaml \
+                              --s3-bucket $DeploymentBucketName \
+                              --region eu-west-1"
+            artifacts:
+              files: ./**
+        Environment:
+          ComputeType: BUILD_GENERAL1_SMALL
+          Image: aws/codebuild/docker:17.09.0
+          Type: LINUX_CONTAINER
+          EnvironmentVariables:
+            - Name: DeploymentBucketName
+              Type: PLAINTEXT
+              Value: !Ref DeploymentBucket
+        Name: !Sub "${AWS::StackName}-buildproject"
+        ServiceRole: !Ref PipelineRole  
+```  
+
+The most important parts of this snippet are the BuildSpec, which define the commands required to get your application into a built and deployable state. These commands could also potentially be used for linting, running unit tests, validation etc, perhaps even as separate codebuild configurations. It's worth noting that you can share codebuild projects between different codebases if you're clever (e.g. put buildspec in your source control).
+
+Also important is the Environment which specifies first the performance level your build requires (which affects cost and performance), and also which container image to use to run the build steps. And finally, what IAM role to assume - there is a standard spec in the AWS documentation, but we require some customisation for our build steps to work because we need to write a cloudformation template to S3.
+
+Ok so with the descriptions out of the way, as before save the updated pipeline.yaml file which should contain the full contents of part-2/snippet.yaml (overwrite previous contents), then with the same git commands as before, add, commit and push the changes.
+
+After a short period (monitor your pge-*-pipeline to see things moving), you should see some new resources in your pge-*-app, and also an additonal pipeline prefixed with pge-*.
