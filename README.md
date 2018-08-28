@@ -283,4 +283,4 @@ Also important is the Environment which specifies first the performance level yo
 
 Ok so with the descriptions out of the way, as before save the updated pipeline.yaml file which should contain the full contents of part-2/snippet.yaml (overwrite previous contents), then with the same git commands as before, add, commit and push the changes.
 
-After a short period (monitor your pge-**-pipeline to see things moving), you should see some new resources in your pge-**-app, and also an additonal pipeline prefixed with pge-*.
+After a short period (monitor your pipeline to see things moving), you should see some new resources in your pge app stack, and also an additonal pipeline prefixed with pge-*.
