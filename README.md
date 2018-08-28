@@ -6,6 +6,7 @@
      - [Logging in to the AWS Console](#logging-in-to-the-aws-console)
      - [Your environment](#your-environment)
      - [Creating Your Repository](#creating-your-repository)
+     - [Cloning The Application](#cloning-the-application)
      - [Creating Your Pipeline](#creating-your-pipeline)
 
 # Overview
@@ -96,3 +97,145 @@ git push origin master
 ```
 
 ![](images/commit-to-git.png)
+
+This will trigger the pre-configured pipeline to run, navigate to CodePipeline by going to your previous browser tab and using the services > search to find CodePipeline
+
+![](images/navigate-codepipeline.png)
+
+You'll see a list of existing pipelines, note we've provided these in order to run your source controlled cloudformation script, you'll be creating your own for the application pipeline (think of this as the pipeline's pipeline :) )
+
+![](images/current-pipelines.png)
+
+Select the one with the same prefix as your user name (e.g. pge-1). You should see that your commit triggered a Source action in your pipeline, followed by a build and deploy action - this may be in a different state from the screenshot depending when you view and how long it took.
+
+![](images/running-pipeline.png)
+
+Wait until the deploy stage has completed and nagivate to CloudFormation 
+
+Either through search :-
+
+![](images/navigate-cloudformation.png)
+
+Or through the detais link which appears in the deploy action.
+
+![](images/deploy-action-link.png)
+
+The CloudFormation UI should show that you have a new stack with a single resource, which should be your CodeCommit repository.
+
+![](images/cloudformation-stack-created.png)
+
+Okay, so we've successfully create a source control repository for our application source code!
+
+But that's just the beginning!
+
+### Cloning the application
+
+So we have source control, but as yet no source. We need to push the contents of the my-app-clone folder from your Cloud9 environment to your new repository so the first thing we need is the push url of your CodeCommit repo.
+
+Goto the CodeCommit UI using the search.
+
+In the CodeCommit dashboard you should see a repository prexifed with your user name and suffixed with -app :-
+
+If so, great! You now need to click on the repo and get the Clone Url, when you click the repo in the list, the first screen usually shows a "Connect to your repository" pane. You need to use the https URL in this case.
+
+![](images/get-clone-url.png)
+
+If you don't see this pane, you can instead click the "Clone URL" dropdown button shown, this copies the url for you to paste in elsewhere :-
+
+![](images/clone-url-button.png)
+
+Once you have the URL copied (make sure it's https), return to your Cloud9 environment. Next we need to push the my-app-clone folder/repo to the URL you copied. To do this :-
+
+```
+cd ~/environment/my-app-clone
+git push {YOUR_COPIED_URL}
+```
+E.g.
+
+![](images/clone-bash.png)
+
+If you want you can view your repo and ensure that the code has been committed, open your CodeCommit repository :-
+
+![](images/cloned-code.png)
+
+Excellent! So now we have a repository with an application ready to have the first iteration released! So now what we need is a way to do that...
+
+### Creating your pipeline
+
+Return to your Cloud9 environment.
+
+In order to release our code we need to start building a pipeline. For this we need a number of resources.
+
+1) A CodePipeline. We need a minimum of 2 actions in order to create the pipeline.
+2) A way to run the code's build actions.
+3) A way to deploy the application.
+
+CodePipeline requires 2 actions so we'll deal with 1 + 2 together.
+
+Lets go back to Cloud9.
+
+Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline.
+
+Pipeline:- This is the action CodePipeline resource. CodePipeline allows you to define stages and actions which occur during your CI/CD process. Let's walk through the properties defined here
+```
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub '${CodeRepository.Name}-pipeline'
+      ArtifactStore:
+        Location: !Ref DeploymentBucket
+        Type: S3
+      DisableInboundStageTransitions: []
+      RoleArn: !GetAtt [PipelineRole, Arn]
+      Stages:
+```
+
+    Name :- Defines the name of the pipeline shown in the UI
+
+    ArtifactStore :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
+
+    RoleArn :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
+
+    Stages :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
+
+```
+Stages:
+-
+    Name: Source
+    Actions:
+    -
+        Name: Checkout
+        ActionTypeId:
+        Category: Source
+        Owner: AWS
+        Version: 1
+        Provider: CodeCommit
+        OutputArtifacts:
+        -
+            Name: CFNTemplateOutput
+        Configuration:
+        BranchName: master
+        RepositoryName: !GetAtt CodeRepository.Name
+        RunOrder: 1
+-
+    Name: PackageCloudFormation
+    Actions:
+    -
+        Name: PackagePipelineCFN
+        ActionTypeId:
+        Category: Build
+        Owner: AWS
+        Version: 1
+        Provider: CodeBuild
+        Configuration:
+        ProjectName: !Ref CodeBuildProject
+        InputArtifacts: 
+        - Name: CFNTemplateOutput
+        OutputArtifacts:
+        - Name: PackagedCFN
+        RunOrder: 1
+```
+
+We won't go into detail about these options, the two stages are 1) grab source from a CodeCommit repository and 2) run a CodeBuild Project.... But we haven't defined the CodeBuild project yet.
+
+A CodeBuild project is a specification defining how to run your build steps
