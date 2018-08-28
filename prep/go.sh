@@ -1,9 +1,23 @@
 #! /bin/bash
-set -e
+profile=playground
+region=eu-west-1
+VPCName="PlaygroundVPC"
+prepstackname=pge-7-prep
+userstackprefix=pge
+aws cloudformation deploy \
+    --stack-name $prepstackname \
+    --template-file prep.yaml \
+    --profile $profile \
+    --region $region \
+    --parameter-overrides \
+        VPCName=$VPCName \
+        PrepStackName=$prepstackname \
+    --capabilities=CAPABILITY_NAMED_IAM
+
 iterations=$1
 for i in $(seq 1 $iterations)
 do
-    bootstack=boot-${i}
+    bootstack=$userstackprefix-${i}
     stackname=pipeline-${i}
     user=pge-${i}
     password=abcd12345
@@ -14,8 +28,8 @@ do
     aws cloudformation deploy \
         --stack-name $bootstack \
         --template-file pipeline.yaml \
-        --profile ecs-training \
-        --region eu-west-1 \
+        --profile $profile \
+        --region $region \
         --parameter-overrides \
             RepositoryName=$repo \
             StackName=$stackname \
@@ -23,5 +37,6 @@ do
             Password=$password \
             SubnetId=$subnetId \
             InstanceType=t2.medium \
+            PrepStackName=$prepstackname \
         --capabilities=CAPABILITY_NAMED_IAM
 done

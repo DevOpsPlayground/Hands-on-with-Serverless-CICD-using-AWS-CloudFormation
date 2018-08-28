@@ -22,7 +22,7 @@ Parameters:
     ConstraintDescription: must contain only alphanumeric characters.
   InstanceType:
     Type: String
-  SubnetId:
+  PrepStackName:
     Type: String
 Resources:
   User:
@@ -38,48 +38,45 @@ Resources:
     Properties:
       PolicyName: !Sub "${AWS::StackName}-user-policy"
       Users:
-          - !Ref User
+        - !Ref User
       PolicyDocument: 
         Version: "2012-10-17"
         Statement: 
           - 
             Effect: Allow
             Action:
+              - autoscaling:Describe*
+              - cloudwatch:Describe*
+              - cloudwatch:Get*
+              - cloudwatch:List*
+              - logs:Get*
+              - logs:Describe*
+              - sns:Get*
+              - sns:List*
+            Resource: '*'
+          - 
+            Effect: Allow
+            Action:
+              - codecommit:Get*
               - codecommit:CreateBranch
               - codecommit:ListPullRequests
-              - codecommit:GetBlob
               - codecommit:PutFile
-              - codecommit:GetReferences
               - codecommit:ListRepositories
               - codecommit:UpdatePullRequestTitle
-              - codecommit:GetCommentsForComparedCommit
-              - codecommit:GetCommit
-              - codecommit:GetComment
               - codecommit:UpdateComment
-              - codecommit:GetCommitHistory
-              - codecommit:GetCommitsFromMergeBase
               - codecommit:TestRepositoryTriggers
               - codecommit:DescribePullRequestEvents
-              - codecommit:GetUploadArchiveStatus
-              - codecommit:GetDifferences
-              - codecommit:GetRepository
-              - codecommit:GetBranch
-              - codecommit:GetMergeConflicts
               - codecommit:PostCommentForComparedCommit
               - codecommit:GitPush
               - codecommit:DeleteBranch
               - codecommit:UpdatePullRequestStatus
               - codecommit:CreatePullRequest
-              - codecommit:GetPullRequest
               - codecommit:PutRepositoryTriggers
               - codecommit:ListBranches
               - codecommit:PostCommentForPullRequest
-              - codecommit:GetRepositoryTriggers
               - codecommit:UpdatePullRequestDescription
               - codecommit:GitPull
               - codecommit:BatchGetRepositories
-              - codecommit:GetCommentsForPullRequest
-              - codecommit:GetObjectIdentifier
               - codecommit:CancelUploadArchive
               - codecommit:BatchGetPullRequests
               - codecommit:PostCommentReply
@@ -108,7 +105,6 @@ Resources:
               - cloudformation:ListStackSets
               - cloudformation:Describe*
               - cloudformation:Get*
-              - cloudformation:EstimateTemplateCost
             Resource: '*'
           -
             Effect: Allow
@@ -120,11 +116,6 @@ Resources:
             Action:
               - apigateway:*
             Resource: '*'
-          - 
-            Effect: Allow
-            Action:
-              - cloudwatch:*
-            Resources: '*'
 
   Repository:
     Type: AWS::CodeCommit::Repository
@@ -238,7 +229,11 @@ Resources:
             phases:
               build:
                 commands:
-                  - !Sub aws cloudformation package --template-file pipeline.yaml --output-template-file output.yaml --s3-bucket cicd-artifactbucket --region eu-west-1
+                  - !Sub aws cloudformation package \
+                            --template-file pipeline.yaml \
+                            --output-template-file output.yaml \
+                            --s3-bucket cicd-artifactbucket \
+                            --region eu-west-1
             artifacts:
               files: ./**
         Environment:
@@ -320,6 +315,7 @@ Resources:
               RunOrder: 2
   IDE:
     Type: AWS::Cloud9::EnvironmentEC2
+    DependsOn: UserPolicy
     Properties:
       Repositories: 
       - PathComponent: "./project"     
@@ -331,4 +327,4 @@ Resources:
       AutomaticStopTimeMinutes: 60
       InstanceType: !Ref InstanceType
       Name: !Ref StackName
-      SubnetId: !Ref SubnetId
+      SubnetId: {'Fn::ImportValue': !Sub '${PrepStackName}-SubnetID'}
