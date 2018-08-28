@@ -4,6 +4,8 @@ region=eu-west-1
 VPCName="PlaygroundVPC"
 prepstackname=pge-7-prep
 userstackprefix=pge
+artifactbucket=pge-artifact-bucket
+deploybucket=pge-deploy-bucket
 aws cloudformation deploy \
     --stack-name $prepstackname \
     --template-file prep.yaml \
@@ -12,6 +14,8 @@ aws cloudformation deploy \
     --parameter-overrides \
         VPCName=$VPCName \
         PrepStackName=$prepstackname \
+        ArtifactBucketName=$artifactbucket \
+        DeploymentBucketName=$deploybucket \
     --capabilities=CAPABILITY_NAMED_IAM
 
 iterations=$1
@@ -21,7 +25,7 @@ do
     stackname=pipeline-${i}
     user=pge-${i}
     password=abcd12345
-    repo=serverless-${i}
+    repo=pge-${i}
     subnetId=subnet-e5224381
     repourl=ssh://git-codecommit.eu-west-1.amazonaws.com/v1/repos/$repo
     #echo "$user,$password,$repo,$bootstack,$stackname" >> test.csv

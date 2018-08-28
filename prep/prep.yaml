@@ -10,6 +10,10 @@ Parameters:
     Type: String
     Default: 
     Default: 10.0.0.0/17
+  ArtifactBucketName:
+    Type: String
+  DeploymentBucketName:
+    Type: String
 Resources:
   VPC:
     Type: AWS::EC2::VPC
@@ -59,9 +63,29 @@ Resources:
     Properties:
       RouteTableId: !Ref RouteTable
       SubnetId: !Ref PublicSubnet
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ArtifactBucketName
+      VersioningConfiguration:
+        Status: Enabled
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref DeploymentBucketName
 Outputs:
   DevSubnet:
     Description: "The subnet to be used by development"
     Value: !Ref PublicSubnet
     Export:
       Name: !Sub "${AWS::StackName}-SubnetID"
+  ArtifactBucket:
+    Description: "The artifact bucket for the codepipeline artifacts"
+    Value: !Ref ArtifactBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-ArtifactBucket"
+  DeploymentBucket:
+    Description: "The bucket containing the cloudformation to deploy"
+    Value: !Ref DeploymentBucket
+    Export:
+      Name: !Sub "${AWS::StackName}-DeploymentBucket"

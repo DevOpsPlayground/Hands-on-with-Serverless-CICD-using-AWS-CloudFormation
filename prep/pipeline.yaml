@@ -110,6 +110,7 @@ Resources:
             Effect: Allow
             Action: 
               - codebuild:*
+              - codepipeline:*
             Resource: '*'
           -
             Effect: Allow
@@ -122,11 +123,6 @@ Resources:
     Properties:
       RepositoryDescription: "CodeCommit repository for project"
       RepositoryName: !Ref RepositoryName
-  CodepipelineArtifactBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      VersioningConfiguration:
-        Status: Enabled
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
@@ -232,7 +228,7 @@ Resources:
                   - !Sub aws cloudformation package \
                             --template-file pipeline.yaml \
                             --output-template-file output.yaml \
-                            --s3-bucket cicd-artifactbucket \
+                            --s3-bucket ${DeploymentBucket} \
                             --region eu-west-1
             artifacts:
               files: ./**
@@ -240,7 +236,11 @@ Resources:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/docker:17.09.0
           Type: LINUX_CONTAINER
-        Name: !Ref StackName
+          EnvironmentVariables:
+            - Name: DeploymentBucket
+              Type: PLAINTEXT
+              Value: {'Fn::ImportValue': !Sub '${PrepStackName}-DeploymentBucket'}
+        Name: !Sub '${Repository.Name}-codebuildproj'
         ServiceRole: !Ref PipelineRole  
         
   Pipeline:
@@ -248,7 +248,7 @@ Resources:
     Properties:
       Name: !Sub '${Repository.Name}-pipeline'
       ArtifactStore:
-        Location: !Ref CodepipelineArtifactBucket
+        Location: {'Fn::ImportValue': !Sub '${PrepStackName}-ArtifactBucket'}
         Type: S3
       DisableInboundStageTransitions: []
       RoleArn: !GetAtt [PipelineRole, Arn]
@@ -310,8 +310,7 @@ Resources:
                   Fn::GetAtt: [ CFNRole, Arn ]
                 Capabilities: CAPABILITY_NAMED_IAM
                 StackName: !Ref StackName
-                TemplatePath: PackagedCFN::output.yaml
-
+                TemplatePath: PackagedCFN::output.yaml                 
               RunOrder: 2
   IDE:
     Type: AWS::Cloud9::EnvironmentEC2

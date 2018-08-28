@@ -1,19 +1,19 @@
 #! /bin/bash
-set -e
 profile=playground
 region=eu-west-1
 iterations=$1
+prepstackname=pge-7-prep
+userstackprefix=pge
 for i in $(seq 1 $iterations)
 do
-    bootstack=boot-${i}
+    bootstack=$userstackprefix-${i}
     aws cloudformation delete-stack \
         --stack-name $bootstack \
-        --profile ecs-training \
-        --region eu-west-1
+        --profile $profile \
+        --region $region
 done
 
-VPCName="PlaygroundVPC"
 aws cloudformation delete-stack \
-    --stack-name pge-7-prep \
+    --stack-name $prepstackname \
     --profile $profile \
     --region $region
