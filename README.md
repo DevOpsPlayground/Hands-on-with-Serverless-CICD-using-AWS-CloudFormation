@@ -190,13 +190,13 @@ Pipeline:- This is the action CodePipeline resource. CodePipeline allows you to 
       Stages:
 ```
 
-    Name :- Defines the name of the pipeline shown in the UI
+Name :- Defines the name of the pipeline shown in the UI
 
-    ArtifactStore :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
+ArtifactStore :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
 
-    RoleArn :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
+RoleArn :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
 
-    Stages :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
+Stages :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
 
 ```
 Stages:
