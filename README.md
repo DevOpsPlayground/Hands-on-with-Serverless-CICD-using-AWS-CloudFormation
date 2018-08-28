@@ -3,7 +3,7 @@
 
 - [Overview](#overview)
 - [Hands On](#hands-on)
-     - [Logging in to AWS Console](#logging-in-to-aws-console)
+     - [Logging in to the AWS Console](#logging-in-to-the-aws-console)
      - [Your environment](#your-environment)
      - [Creating Your Repository](#creating-your-repository)
      - [Creating Your Pipeline](#creating-your-pipeline)
@@ -69,3 +69,30 @@ The largest pane visible is the file viewer
 This is where you can view and edit code. We'll mostly be copying and pasting in this window but there's also support for things like breakpoints (when debugging lambda for example).
 
 ### Creating Your Repository
+
+First lets create our template. Your environment will expect a template called "pipeline.yaml", so right-click on the my-pipeline folder and click New File.
+
+![](images/new-file.png)
+
+Name the file pipeline.yaml, then double-click the file to open.
+
+![](images/pipeline-yaml.png)
+
+In "playground-scripts/part-1", double-click on "snippet.yaml" to open the file.
+
+Our first snippet defines a source control repository in CodeCommit for us to check-in our application source code. CodeCommit is a fully git compatible, AWS managed source control solution.
+
+First copy the code from the snippet.yaml, usual OS shortcuts apply here so CMD+A, CMD+C should work (in MacOs, Windows is likely ALT). Now open the pipeline.yaml from the my-pipeline folder and pase the code in. Press CMD+S to save pipeline.yaml
+
+![](images/copied-and-saved.png)
+
+Next we need to check this into source control. So in the terminal we use the following commands
+
+```
+cd my-pipeline
+git add .
+git commit -m "Added pipeline.yaml"
+git push origin master
+```
+
+![](images/commit-to-git.png)
