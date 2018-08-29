@@ -51,11 +51,11 @@ You should have 3 repositories cloned and showing in the folder pane on the left
 
 ![](images/environment-folders.png)
 
-my-app-clone :- This is a clone of the repository https://github.com/ecsdigital/devopsplayground23-app - it contains a simple Hello World NodeJs express app which we'll be deploying in the pipeline you create. We need this clone so we can push the contents to our new repository when we create it. This is read-only
+__my-app-clone__ :- This is a clone of the repository https://github.com/ecsdigital/devopsplayground23-app - it contains a simple Hello World NodeJs express app which we'll be deploying in the pipeline you create. We need this clone so we can push the contents to our new repository when we create it. This is read-only
 
-my-pipeline :- This is an empty repository into which we'll be committing our cloudformation template to build our pipeline. The template must be called template.yaml and must be in the root of this folder. More on this shortly. You have permission to push to this repository through your iam user, that will be the mechanism through which we execute our pipeline template.
+__my-pipeline__ :- This is an empty repository into which we'll be committing our cloudformation template to build our pipeline. The template must be called template.yaml and must be in the root of this folder. More on this shortly. You have permission to push to this repository through your iam user, that will be the mechanism through which we execute our pipeline template.
 
-playground-scripts :- A clone of this repository, which contains copies of the cloudformation that you can run to create your pipeline. This was included to give an easy way to view and copy scripts inside the environment. This is also read-only.
+__playground-scripts__ :- A clone of this repository, which contains copies of the cloudformation that you can run to create your pipeline. This was included to give an easy way to view and copy scripts inside the environment. This is also read-only.
 
 At the bottom of the page, there is a terminal window pane
 
@@ -194,11 +194,11 @@ Let's walk through the properties defined here
 
 *Name* :- Defines the name of the pipeline shown in the UI
 
-*ArtifactStore* :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
+__ArtifactStore__ :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
 
-*RoleArn* :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
+__RoleArn__ :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
 
-*Stages* :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
+__Stages__ :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
 
 ```
 Stages:
@@ -269,7 +269,7 @@ CodeBuildProject:
               files: ./**
         Environment:
           ComputeType: BUILD_GENERAL1_SMALL
-          Image: aws/codebuild/docker:17.09.0
+          Image: aws/codebuild/nodejs:10.1.0
           Type: LINUX_CONTAINER
           EnvironmentVariables:
             - Name: DeploymentBucketName
