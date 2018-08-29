@@ -70,7 +70,7 @@ Resources:
                 RoleArn: !GetAtt CFNRole.Arn
                 Capabilities: CAPABILITY_NAMED_IAM
                 StackName: !Sub "${AWS::StackName}-Deployment"
-                TemplatePath: PackagedCFN::output.yaml
+                TemplatePath: CodeWithPackagedCFN::output.yaml
               RunOrder: 1
             - Name: ExecuteChangeset
               ActionTypeId:
@@ -83,7 +83,7 @@ Resources:
                 RoleArn: !GetAtt CFNRole.Arn
                 StackName: !Sub "${AWS::StackName}-Deployment"
                 ChangeSetName: Changes
-                TemplatePath: PackageCFN::output.yaml
+                TemplatePath: CodeWithPackagedCFN::output.yaml
               RunOrder: 2
 
   CodeBuildProject:
@@ -95,7 +95,7 @@ Resources:
         Type: CODEPIPELINE
       Environment:
         ComputeType: BUILD_GENERAL1_SMALL
-        Image: aws/codebuild/docker:17.09.0
+        Image: aws/codebuild/nodejs:10.1.0
         Type: LINUX_CONTAINER
         EnvironmentVariables:
           - Name: DeploymentBucketName
