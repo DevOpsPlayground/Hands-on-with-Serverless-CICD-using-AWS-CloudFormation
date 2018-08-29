@@ -176,7 +176,9 @@ Lets go back to Cloud9.
 
 Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline. Copy the contents of this file into your pipeline.yaml - we'll walkthrough these options first.
 
-Pipeline:- This is the action CodePipeline resource. CodePipeline allows you to define stages and actions which occur during your CI/CD process. Let's walk through the properties defined here
+Pipeline:- This is the CodePipeline resource. CodePipeline allows you to define stages and actions which occur during your CI/CD process. Actions are generally going to call out to other services (AWS or custom resources), for example to perform build steps we use CodeBuild and for deployment we can use CloudFormation or Amazon ECS.
+
+Let's walk through the properties defined here
 ```
   Pipeline:
     Type: AWS::CodePipeline::Pipeline
@@ -190,13 +192,13 @@ Pipeline:- This is the action CodePipeline resource. CodePipeline allows you to 
       Stages:
 ```
 
-Name :- Defines the name of the pipeline shown in the UI
+*Name* :- Defines the name of the pipeline shown in the UI
 
-ArtifactStore :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
+*ArtifactStore* :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
 
-RoleArn :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
+*RoleArn* :- CodePipeline must assume an IAM role in order to gain permissions to perform AWS actions. There is a minimal role documented by AWS, but you may require additional permissions which you can define here.
 
-Stages :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
+*Stages* :- Here is where we defined the steps of the pipeline. Stages are sequential, but can contain parallel actions. In our case for now we just want 2 stages. Firstly, grab the source. Secondly, build the template.
 
 ```
 Stages:

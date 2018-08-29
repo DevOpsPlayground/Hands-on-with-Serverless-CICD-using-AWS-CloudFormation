@@ -327,5 +327,5 @@ Resources:
       Description: "Your own personal playground!"
       AutomaticStopTimeMinutes: 60
       InstanceType: !Ref InstanceType
-      Name: !Sub ${StackName}
+      Name: !Sub ${AWS::StackName}
       SubnetId: {'Fn::ImportValue': !Sub '${PrepStackName}-SubnetID'}
