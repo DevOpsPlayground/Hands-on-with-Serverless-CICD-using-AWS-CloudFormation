@@ -3,9 +3,167 @@ Resources:
     Type: AWS::CodeCommit::Repository
     Properties:
       RepositoryDescription: "CodeCommit repository for project"
-      RepositoryName: !Sub "${AWS::StackName}-app"
-  DeploymentBucket:
+      RepositoryName: !Sub "${AWS::StackName}"
+
+  ArtifactAndDeploymentBucket:
     Type: AWS::S3::Bucket
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: !Sub '${CodeRepository.Name}-pipeline'
+      RoleArn: !GetAtt PipelineRole.Arn
+      ArtifactStore:
+        Location: !Ref ArtifactAndDeploymentBucket
+        Type: S3
+      Stages:
+        - 
+          Name: Source
+          Actions:
+            -
+              Name: Checkout
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Version: 1
+                Provider: CodeCommit
+              OutputArtifacts:
+                -
+                  Name: Code
+              Configuration:
+                BranchName: master
+                RepositoryName: !GetAtt CodeRepository.Name
+              RunOrder: 1
+        -
+          Name: PackageCloudFormation
+          Actions:
+            - 
+              Name: PackagePipelineCFN
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              InputArtifacts: 
+                - Name: Code
+              OutputArtifacts:
+                - Name: CodeWithPackagedCFN
+              RunOrder: 1
+        -  
+          Name: Deploy
+          Actions:
+            -
+              Name: CreateChangeset
+              InputArtifacts:
+                -
+                  Name: CodeWithPackagedCFN
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                ChangeSetName: Changes
+                RoleArn: !GetAtt CFNRole.Arn
+                Capabilities: CAPABILITY_NAMED_IAM
+                StackName: !Sub "${AWS::StackName}-Deployment"
+                TemplatePath: PackagedCFN::output.yaml
+              RunOrder: 1
+            - Name: ExecuteChangeset
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CloudFormation
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                RoleArn: !GetAtt CFNRole.Arn
+                StackName: !Sub "${AWS::StackName}-Deployment"
+                ChangeSetName: Changes
+                TemplatePath: PackageCFN::output.yaml
+              RunOrder: 2
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Source:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/docker:17.09.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: DeploymentBucketName
+            Type: PLAINTEXT
+            Value: !Ref ArtifactAndDeploymentBucket
+      Name: !Sub "${AWS::StackName}-buildproject"
+      ServiceRole: !Ref PipelineRole
+
+  PipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+            Service: [codepipeline.amazonaws.com]
+        - Action: ['sts:AssumeRole']
+          Effect: Allow
+          Principal:
+              Service: [codebuild.amazonaws.com]
+        Version: '2012-10-17'
+      Path: /
+      Policies:
+        - PolicyName: CodePipelineAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - s3:*
+                - cloudformation:CreateStack
+                - cloudformation:DescribeStacks
+                - cloudformation:DeleteStack
+                - cloudformation:UpdateStack
+                - cloudformation:CreateChangeSet
+                - cloudformation:ExecuteChangeSet
+                - cloudformation:DeleteChangeSet
+                - cloudformation:DescribeChangeSet
+                - cloudformation:SetStackPolicy
+                - sns:ListSubscriptionsByTopic
+                - cloudwatch:*
+                - cloudwatchlogs:*
+                - logs:*
+                - iam:PassRole               
+                - sts:AssumeRole
+                - codecommit:*
+                - apigateway:*
+                Effect: Allow
+                Resource: '*'
+        - PolicyName: CodeCommitAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - 'codecommit:*'
+                - 'sts:AssumeRole'
+                Effect: Allow
+                Resource: !GetAtt CodeRepository.Arn
+        - PolicyName: CodeBuildAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                - codebuild:*
+                - logs:*
+                Effect: Allow
+                Resource: '*'
+  
   CFNRole:
     Type: AWS::IAM::Role
     Properties:
@@ -39,180 +197,4 @@ Resources:
                   - apigateway:*
                 Effect: Allow
                 Resource: '*' 
-              
-  PipelineRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action: ['sts:AssumeRole']
-          Effect: Allow
-          Principal:
-            Service: [codepipeline.amazonaws.com]
-        - Action: ['sts:AssumeRole']
-          Effect: Allow
-          Principal:
-              Service: [codebuild.amazonaws.com]
-        Version: '2012-10-17'
-      Path: /
-      Policies:
-        - PolicyName: CodePipelineAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                - 's3:*'
-                - 'cloudformation:CreateStack'
-                - 'cloudformation:DescribeStacks'
-                - 'cloudformation:DeleteStack'
-                - 'cloudformation:UpdateStack'
-                - 'cloudformation:CreateChangeSet'
-                - 'cloudformation:ExecuteChangeSet'
-                - 'cloudformation:DeleteChangeSet'
-                - 'cloudformation:DescribeChangeSet'
-                - 'cloudformation:SetStackPolicy'
-                - 'cloudwatch:*' 
-                - 'cloudwatchlogs:*' 
-                - 'logs:*'
-                - 'iam:PassRole'
-                - 'sns:*'
-                - 'sts:AssumeRole'
-                - 'codecommit:*'
-                - 'ecr:*'
-                - 'apigateway:*'
-                Effect: Allow
-                Resource: '*'
-        - PolicyName: CodeCommitAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                - 'codecommit:*'
-                - 'sts:AssumeRole'
-                Effect: Allow
-                Resource: !GetAtt CodeRepository.Arn
-        - PolicyName: CodeBuildAccess
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Action:
-                - codebuild:*
-                - logs:*
-                Effect: Allow
-                Resource: '*'
-  CodeBuildProject:
-    Type: AWS::CodeBuild::Project
-    Properties:
-        Artifacts:
-          Type: CODEPIPELINE
-        Source:
-          Type: CODEPIPELINE
-          BuildSpec: |
-            version: 0.2
-            phases:
-              install:
-                commands:
-                  - npm install
-              build:
-                commands:
-                  - !Sub "aws cloudformation package \
-                              --template-file template.yaml \
-                              --output-template-file output.yaml \
-                              --s3-bucket $DeploymentBucketName \
-                              --region eu-west-1"
-            artifacts:
-              files: ./**
-        Environment:
-          ComputeType: BUILD_GENERAL1_SMALL
-          Image: aws/codebuild/docker:17.09.0
-          Type: LINUX_CONTAINER
-          EnvironmentVariables:
-            - Name: DeploymentBucketName
-              Type: PLAINTEXT
-              Value: !Ref DeploymentBucket
-        Name: !Sub "${AWS::StackName}-buildproject"
-        ServiceRole: !Ref PipelineRole  
-        
-  Pipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: !Sub '${CodeRepository.Name}-pipeline'
-      ArtifactStore:
-        Location: !Ref DeploymentBucket
-        Type: S3
-      DisableInboundStageTransitions: []
-      RoleArn: !GetAtt [PipelineRole, Arn]
-      Stages:
-        - 
-          Name: Source
-          Actions:
-            -
-              Name: Checkout
-              ActionTypeId:
-                Category: Source
-                Owner: AWS
-                Version: 1
-                Provider: CodeCommit
-              OutputArtifacts:
-                -
-                  Name: CFNTemplateOutput
-              Configuration:
-                BranchName: master
-                RepositoryName: !GetAtt CodeRepository.Name
-              RunOrder: 1
-        -
-          Name: PackageCloudFormation
-          Actions:
-            - 
-              Name: PackagePipelineCFN
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: 1
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: !Ref CodeBuildProject
-              InputArtifacts: 
-                - Name: CFNTemplateOutput
-              OutputArtifacts:
-                - Name: PackagedCFN
-              RunOrder: 1
-            
-        -  
-          Name: Deploy
-          Actions:
-            -
-              Name: CreateChangeset
-              InputArtifacts:
-                -
-                  Name: PackagedCFN
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: CloudFormation
-              OutputArtifacts:
-                -
-                  Name: CreatedStack
-              Configuration:
-                ActionMode: CHANGE_SET_REPLACE
-                ChangeSetName: Changes
-                RoleArn:
-                  Fn::GetAtt: [ CFNRole, Arn ]
-                Capabilities: CAPABILITY_NAMED_IAM
-                StackName: !Sub "${AWS::StackName}-Deployment"
-                TemplatePath: PackagedCFN::output.yaml
-              RunOrder: 1
-            - Name: ExecuteChangeset
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: 1
-                Provider: CloudFormation
-              Configuration:
-                ActionMode: CHANGE_SET_EXECUTE
-                RoleArn: !GetAtt CFNRole.Arn
-                StackName: !Sub "${AWS::StackName}-Deployment"
-                ChangeSetName: Changes
-                TemplatePath: PackageCFN::output.yaml
-              RunOrder: 2
+
