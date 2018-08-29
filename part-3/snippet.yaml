@@ -2,7 +2,7 @@ Resources:
   CodeRepository:
     Type: AWS::CodeCommit::Repository
     Properties:
-      RepositoryDescription: "CodeCommit repository for project"
+      RepositoryDescription: "My Application!"
       RepositoryName: !Sub "${AWS::StackName}"
 
   ArtifactAndDeploymentBucket:

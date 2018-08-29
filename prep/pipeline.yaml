@@ -121,7 +121,7 @@ Resources:
   Repository:
     Type: AWS::CodeCommit::Repository
     Properties:
-      RepositoryDescription: "CodeCommit repository for project"
+      RepositoryDescription: !Sub "where the pipeline cloudformation for ${UserName}-app is committed to be executed"
       RepositoryName: !Sub ${RepositoryName}
   CFNRole:
     Type: AWS::IAM::Role

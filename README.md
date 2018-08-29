@@ -79,7 +79,18 @@ Name the file pipeline.yaml, then double-click the file to open.
 
 ![](images/pipeline-yaml.png)
 
-In "playground-scripts/part-1", double-click on "snippet.yaml" to open the file.
+In "playground-scripts/part-1", double-click on "snippet.yaml" to open the file. It should look something like this :-
+
+```
+Resources:
+  CodeRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryDescription: "CodeCommit repository for project"
+      RepositoryName: !Sub "${AWS::StackName}"
+```
+
+The CodeCommit::Repository resource only requires a RepositoryName (we're just using the stack name here which should be pge-x-app), but it's useful to provide a description as well. In addition you can define triggers to do notifications based on repository events such emailing users when someone commits to master - see the docs for more details.
 
 Our first snippet defines a source control repository in CodeCommit for us to check-in our application source code. CodeCommit is a fully git compatible, AWS managed source control solution.
 
@@ -110,7 +121,7 @@ Select the one with the same prefix as your user name (e.g. pge-1). You should s
 
 ![](images/running-pipeline.png)
 
-Wait until the deploy stage has completed and nagivate to CloudFormation 
+Wait until the deploy stage has completed and nagivate to CloudFormation
 
 Either through search :-
 
@@ -123,6 +134,10 @@ Or through the detais link which appears in the deploy action.
 The CloudFormation UI should show that you have a new stack with a single resource, which should be your CodeCommit repository.
 
 ![](images/cloudformation-stack-created.png)
+
+And sure enough if we look at the CodeCommit repository list, we can see our new repository!
+
+![](images/new-repository.png)
 
 Okay, so we've successfully create a source control repository for our application source code!
 
