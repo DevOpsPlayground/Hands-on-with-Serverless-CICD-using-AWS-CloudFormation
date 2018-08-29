@@ -199,11 +199,10 @@ Let's walk through the properties defined here
     Type: AWS::CodePipeline::Pipeline
     Properties:
       Name: !Sub '${CodeRepository.Name}-pipeline'
+      RoleArn: !GetAtt PipelineRole.Arn
       ArtifactStore:
-        Location: !Ref DeploymentBucket
+        Location: !Ref ArtifactAndDeploymentBucket
         Type: S3
-      DisableInboundStageTransitions: []
-      RoleArn: !GetAtt [PipelineRole, Arn]
       Stages:
 ```
 
