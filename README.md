@@ -8,6 +8,7 @@
      - [Creating Your Repository](#creating-your-repository)
      - [Cloning The Application](#cloning-the-application)
      - [Creating Your Pipeline](#creating-your-pipeline)
+     - [Deploy your app](#deploy-your-app)
 
 # Overview
 In this playground we're going to create a codepipeline for a small serverless application by using CloudFormation. We will do this iteratively by introducing new resources with each commit. You have been provided with an environment to view and edit code, a repository to push your pipeline script and a CD pipeline which will deploy your changes automatically.
@@ -217,7 +218,6 @@ __Stages__ :- Here is where we defined the steps of the pipeline. Stages are seq
 ```
 Stages:
 -
-    Name: Source
     Actions:
     -
         Name: Source
@@ -230,7 +230,7 @@ Stages:
                 Version: 1
                 Provider: CodeCommit
             OutputArtifacts:
-                - Name: CFNTemplateOutput
+                - Name: Code
             Configuration:
                 BranchName: master
                 RepositoryName: !GetAtt CodeRepository.Name
@@ -247,14 +247,18 @@ Stages:
                 Provider: CodeBuild
             Configuration:
                 ProjectName: !Ref CodeBuildProject
-            InputArtifacts: 
-                - Name: CFNTemplateOutput
+            InputArtifacts:
+                - Name: Code
             OutputArtifacts:
-                - Name: PackagedCFN
+                - Name: CodeWithPackagedCFN
             RunOrder: 1
 ```
 
-We won't go into detail about these options, the two stages are 1) grab source from a CodeCommit repository and 2) run a CodeBuild Project.... But we haven't defined the CodeBuild project yet.
+This configuration defines two stages (Source and PackageCloudFormation).
+
+In the Source stage, we have a single action "Checkout" which is configured to checkout code from the codecommit repository and copy it to an artifact named "Code". This artifact name is then consumed in the next stage, which prompts CodePipeline to download that artifact into the compute space running the next action - this is a super important concept as stages will often pass artifacts around this way.
+
+In the PackageCloudFormation stage, a single action is configured to run a CodeBuild project using the artifact of the previous stage (our source code).
 
 A CodeBuild project is a specification defining how to run your build steps, so that's what we need to define next.
 
@@ -266,21 +270,6 @@ CodeBuildProject:
           Type: CODEPIPELINE
         Source:
           Type: CODEPIPELINE
-          BuildSpec: |
-            version: 0.2
-            phases:
-              install:
-                commands:
-                  - npm install
-              build:
-                commands:
-                  - !Sub "aws cloudformation package \
-                              --template-file template.yaml \
-                              --output-template-file output.yaml \
-                              --s3-bucket $DeploymentBucketName \
-                              --region eu-west-1"
-            artifacts:
-              files: ./**
         Environment:
           ComputeType: BUILD_GENERAL1_SMALL
           Image: aws/codebuild/nodejs:10.1.0
@@ -293,11 +282,36 @@ CodeBuildProject:
         ServiceRole: !Ref PipelineRole  
 ```  
 
-The most important parts of this snippet are the BuildSpec, which define the commands required to get your application into a built and deployable state and also the artifacts, which will be used in later build stages (e.g. CloudFormation templates). These commands could also potentially be used for linting, running unit tests, validation etc, perhaps even as separate codebuild configurations. It's worth noting that you can share codebuild projects between different codebases if you're clever (e.g. put buildspec in your source control).
+What's important here is something which is not present in this configuration, the buildspec.yaml file - this is the file which determines which commands are executed during the codebuild phase. These commands could also potentially be used for linting, running unit tests, validation etc, perhaps even as separate codebuild configurations. It's worth noting that you can share codebuild projects between different codebases if you're clever (e.g. put buildspec in your source control).
+
+The buildspec looks something like this :-
+
+```
+version: 0.1
+phases:
+  install:
+    commands:
+      - npm install
+  build:
+    commands:
+      - echo "Nothing to build here as it's node!"    
+  post_build:
+    commands:
+      - aws cloudformation package --template-file template.yaml 
+                                        --s3-bucket $DeploymentBucketName
+                                        --output-template-file output.yaml
+                                        --region $AWS_DEFAULT_REGION
+artifacts:
+  type: zip
+  files:
+    - template.yaml
+    - output.yaml
+```
+In our case this is kept with the application itself, which makes sense since build steps may change, but the pipeline remain the same.
 
 Also important is the Environment which specifies first the performance level your build requires (which affects cost and performance), and also which container image to use to run the build steps. And finally, what IAM role to assume - there is a standard spec in the AWS documentation, but we require some customisation for our build steps to work because we need to write a cloudformation template to S3.
 
-Ok so with the descriptions out of the way, copy the contents of part-2/snippet.yaml to your pipeline.yaml, save the file, then with the same git commands as before, add, commit and push the changes.
+So now copy the contents of part-2/snippet.yaml to your pipeline.yaml, save the file, then with the same git commands as before, add, commit and push the changes.
 
 ```
 cd ~/environment/my-pipeline
@@ -306,4 +320,97 @@ git commit -m "added pipeline to template"
 git push origin master
 ```
 
-After a short period (monitor your pipeline to see things moving), you should see some new resources in your pge app stack, and also an additonal pipeline prefixed with pge-x.
+After a short period (monitor your pipeline to see things moving), you should see some new resources in your pge app stack, and also an additonal pipeline prefixed with pge-x and ending in -app-pipeline!
+
+![](images/app-pipeline.png)
+
+If you click the new pipeline you'll see it has 2 stages, one to checkout the source code and one running the actions contained within the buildspec.yaml file in the app code repository. So we have a running pipeline which will now run every time we commit code to the app repository!
+
+![](images/app-pipeline-details.png)
+
+Now, lets deploy the application!
+
+### Deploy your app
+
+To deploy our app we need to add a new stage to the pipeline. For our particular application (which is an AWS SAM lambda app), we need to use CloudFormation to first generate a change set and then CloudFormation again to execute that change set against our stack. We also need to specify a new IAM role which CloudFormation needs to assume to perform the deployment actions - this roles should contain all the permissions required by our application for successful deployment.
+
+part-3/snippet.yaml contains the complete sample, but let's first explore the additions.
+
+```
+-  
+    Name: Deploy
+    Actions:
+    -
+        Name: CreateChangeset
+        InputArtifacts:
+        -
+            Name: CodeWithPackagedCFN
+        ActionTypeId:
+            Category: Deploy
+            Owner: AWS
+            Version: 1
+            Provider: CloudFormation
+        Configuration:
+            ActionMode: CHANGE_SET_REPLACE
+            ChangeSetName: Changes
+            RoleArn: !GetAtt CFNRole.Arn
+            Capabilities: CAPABILITY_NAMED_IAM
+            StackName: !Sub "${AWS::StackName}-Deployment"
+            TemplatePath: CodeWithPackagedCFN::output.yaml
+        RunOrder: 1
+    - Name: ExecuteChangeset
+        ActionTypeId:
+            Category: Deploy
+            Owner: AWS
+            Version: 1
+            Provider: CloudFormation
+        Configuration:
+            ActionMode: CHANGE_SET_EXECUTE
+            RoleArn: !GetAtt CFNRole.Arn
+            StackName: !Sub "${AWS::StackName}-Deployment"
+            ChangeSetName: Changes
+            TemplatePath: CodeWithPackagedCFN::output.yaml
+        RunOrder: 2
+```
+
+So lets walk through the properties of the new section :-
+
+First, we introduce a new stage "Deploy" which has an actions section.
+
+The first action we specify is named CreateChangeSet, which consumes an input artifact from the previous stage - this is important because we want this packaged CloudFormation file to generate our changeset. The additional configuration determines what provider to use (CloudFormation), what the ActionMode is (CHANGE_SET_REPLACE), what we want our changeset to be called, our stack name and a path to our tmeplate which takes the format ARTIFACTNAME::filename.extension. This tells CloudFormation to use the output.yaml to generate the changeset.
+
+The second action is configured much the same as the first, but the ActionMode is CHANGE_SET_EXECUTE, which will instruct CloudFormation to execute the changes generated by the previous stage and update our stack.
+
+Copy the contents of part-3/snippet.yaml over the contents of your pipeline.yaml file, then save and commit to the repository.
+
+You can observe your pge-X-bootstrap-pipeline to see the changes going through. When the deploy stage has succeeded, go back to your pge-X-app-pipeline and you can observe the new deploy stage that has been added..
+
+![](images/new-deploy-stage.png)
+
+You can now click the "Release change" button to kick off a new execution of your application pipeline to perform the deployment.
+
+Wait for a short while until the "Deploy" stage has started, and you can observe what's happening in the CloudFormation UI (a details link should appear in the action box).
+
+![](images/deploy-stage-start.png)
+
+![](images/cloudformation-progress.png)
+
+If all is well the CloudFormation deployment will succeed and you can observe your new application.
+
+The best way to do so is to click into your CloudFormation stack and view the "Resources", look for the "ServerlessRestApi" and click the hyperlink.
+
+![](images/cloudformation-resources.png)
+
+This takes you to the API gateway UI. Click your API on the left....
+
+![](images/deployed-api.png)
+
+You then should click Stages > Prod and then on the link next to the "Invoke URL".
+
+![](images/invoke.png)
+
+You should then see the results of your app request in your browser!
+
+![](images/result.png)
+
+So you now have a fully functional pipeline you can go ahead and develop the rest of your app and even develop the rest of your pipeline to have additional stages, manual approval steps, additional environments, automated tests - and do this in an incremental way which is revision controlled and fully repeatable!
