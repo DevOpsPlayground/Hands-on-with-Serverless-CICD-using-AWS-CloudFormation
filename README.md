@@ -189,7 +189,7 @@ CodePipeline requires 2 actions so we'll deal with 1 + 2 together.
 
 Lets go back to Cloud9.
 
-Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline. Copy the contents of this file into your pipeline.yaml - we'll walkthrough these options first.
+Open the snippet.yaml file in the part-2 sub-folder of the playground-scripts folder. This snippet contains a number of new resources which are required for a minimal pipeline. 
 
 Pipeline:- This is the CodePipeline resource. CodePipeline allows you to define stages and actions which occur during your CI/CD process. Actions are generally going to call out to other services (AWS or custom resources), for example to perform build steps we use CodeBuild and for deployment we can use CloudFormation or Amazon ECS.
 
@@ -297,6 +297,13 @@ The most important parts of this snippet are the BuildSpec, which define the com
 
 Also important is the Environment which specifies first the performance level your build requires (which affects cost and performance), and also which container image to use to run the build steps. And finally, what IAM role to assume - there is a standard spec in the AWS documentation, but we require some customisation for our build steps to work because we need to write a cloudformation template to S3.
 
-Ok so with the descriptions out of the way, as before save the updated pipeline.yaml file which should contain the full contents of part-2/snippet.yaml (overwrite previous contents), then with the same git commands as before, add, commit and push the changes.
+Ok so with the descriptions out of the way, copy the contents of part-2/snippet.yaml to your pipeline.yaml, save the file, then with the same git commands as before, add, commit and push the changes.
 
-After a short period (monitor your pipeline to see things moving), you should see some new resources in your pge app stack, and also an additonal pipeline prefixed with pge-*.
+```
+cd ~/environment/my-pipeline
+git add .
+git commit -m "added pipeline to template"
+git push origin master
+```
+
+After a short period (monitor your pipeline to see things moving), you should see some new resources in your pge app stack, and also an additonal pipeline prefixed with pge-x.
