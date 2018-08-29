@@ -206,7 +206,7 @@ Let's walk through the properties defined here
       Stages:
 ```
 
-*Name* :- Defines the name of the pipeline shown in the UI
+__Name__ :- Defines the name of the pipeline shown in the UI
 
 __ArtifactStore__ :- CodePipeline needs storage in order to persist artifacts between stages. We are using S3, so we specify the bucket that we wish the artifacts to be stored in.
 
