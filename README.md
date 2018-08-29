@@ -288,7 +288,7 @@ CodeBuildProject:
           EnvironmentVariables:
             - Name: DeploymentBucketName
               Type: PLAINTEXT
-              Value: !Ref DeploymentBucket
+              Value: !Ref ArtifactAndDeploymentBucket
         Name: !Sub "${AWS::StackName}-buildproject"
         ServiceRole: !Ref PipelineRole  
 ```  
